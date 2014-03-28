@@ -1,70 +1,14 @@
-% Main file for running find barrel
-% Includes testing for both kmeans and manual ROI training data
-% old file.  Was converted to: project1_denisewong(
-train = 2; % 1: kmean, 2: manual, 3: skip train
+function [x,y,distance] = denwongRedBarrel(imgOrig)
 
-if train == 1
-    clear all
-    close all
-    clc    
-    train = 1;
-    % Look for all .png files in folder
-    disp('Acquiring File Information...')
-    currentpath = genpath(cd);
-    [DirName]=uigetdir(currentpath,'Select Folder with Training Set Images');
-    %DirName = '/home/denise/Dropbox/ESE650/Project 1/train';
-    addpath(genpath(DirName));
+    % load trained data
+    load denwongTrain.mat
     
-    FileName = dir(strcat(DirName,'/*.png')); %linux
-    %FileName = dir(strcat(DirName,'\*.png')); %windows
+    plotOption = false;
+    hsubfig = figure(2); 
+    set(hsubfig,'Position',[67 130 797 600])
     
-    % generate number from to length of FileName without replacement
-    FileNameRandomIdx = randperm(length(FileName));
-    
-    % Size of training set (out of 50 images)
-    TrainingSetSize = 50;
-    
-    %keyboard
-    % Train clusters and find mu and A:
-    cr_scale = 2; % stretch cr color channel by cr_scale
-    cr_scale = 1.75; % stretch cr color channel by cr_scale (to train on 50)
-    k = 5; % number of clusters
-    [mu A Pcl] = LearnColorsToLabel(FileName(FileNameRandomIdx<=TrainingSetSize),k,cr_scale);
-    keyboard
-    
-elseif train == 2
-        currentpath = genpath(cd);
-    [DirName]=uigetdir(currentpath,'Select Folder with Training Set Images');
-    %DirName = '/home/denise/Dropbox/ESE650/Project 1/train';
-    addpath(genpath(DirName));
-    
-    FileName = dir(strcat(DirName,'/*.png')); %linux
-    %FileName = dir(strcat(DirName,'\*.png')); %windows
-    
-    % generate number from to length of FileName without replacement
-    FileNameRandomIdx = randperm(length(FileName));
-    % FOR MANUALLY TRAINED DATA using LABELTRAININGDATA.m
-    load ROIycbcrData.mat
-    TrainingSetSize = 10; % for 10 files
-    FileNameRandomIdx = 1:length(FileName);
-    cr_scale = 1;
-end
-
-%% Compute probabilities for test set
-disp('Compute probability of red in image')
-TestSetIdx = 1:length(FileName);
-TestSetIdx(FileNameRandomIdx<=TrainingSetSize) = [];
-h_troubleshoot = figure;
-h_final = figure;
-
-% Find red pixels in
-for i = 1:length(TestSetIdx)
-    figure(h_troubleshoot)
-    disp(FileName(TestSetIdx(i)).name)
-    tic
-    imgOrig = imread(FileName(TestSetIdx(i)).name);
-    
-    %% MY ALGORITHM starts here... returns [x,y,d]
+    % constants from training
+    cr_scale = 1.75;
     
     % down sample image
     scaleTest = .75; % reduce size of img by this amt
@@ -72,8 +16,8 @@ for i = 1:length(TestSetIdx)
     imgycbcr = double(rgb2ycbcr(img));
     imgycbcr(:,:,3) = imgycbcr(:,:,3)*cr_scale;
     
-    subplot(2,2,1)
-    imshow(img);
+    %subplot(2,2,1)
+    %imshow(img);
     
     % compute probability for red
     imgycbcrVec = reshape(imgycbcr,length(img(:))/3,3);
@@ -93,13 +37,10 @@ for i = 1:length(TestSetIdx)
     probabilityMat(:) = probabilityVec;
     
     % plot
-    subplot(2,2,2)
-    title('Probability Map')
+    subplot(2,2,1)
     imagesc(probabilityMat)
-    axis image
-    
-    fprintf('Time to compute probability map: %4.3f\n',toc)
-    
+    title('Probability Map')
+    axis image  
     
     %% Threshold pixels to determine which are likely red
     % rescale probabilityMat
@@ -115,18 +56,15 @@ for i = 1:length(TestSetIdx)
     %    BW = im2bw(probImg,min(greyMean));
     %end
     
-    if train == 2
-        % for manual color
-        greyMean = 0.015;
-    else 
+
         greyMean = 0.008;
-    end
     
     BW = im2bw(probImg,greyMean);
     
-    subplot(2,2,3)
-    title('Binarized Probability')
+    subplot(2,2,2)
     imshow(BW)
+    title('Binarized Probability')
+
         
     % process BW:
     %BW = bwmorph(BW,'close');
@@ -135,9 +73,10 @@ for i = 1:length(TestSetIdx)
     BWfilt = bwmorph(BW,'erode');
     %BWfilt = bwmorph(BWfilt,'dilate');
     
-    title('Post Processed Binary Map')
-    subplot(2,2,4)
+    subplot(2,2,3)
     imshow(repmat(uint8(BWfilt),[1 1 3]).*img)
+    title('Post Processed Binary Map Over Image')
+
     
     %% Find connected regions
     cc = bwconncomp(BWfilt);
@@ -184,8 +123,10 @@ for i = 1:length(TestSetIdx)
     
     
     % plot image and mark centroid, print distance from cam.
-    figure(h_final);
+    subplot(2,2,4)
     imshow(imgOrig)
+    title('Barrel Identified')
+
     %centroidOrig = centroid/scaleTest;
     hold on
     %plot(centroidOrig(1),centroidOrig(2),'xb','MarkerSize',10);
@@ -237,20 +178,16 @@ for i = 1:length(TestSetIdx)
             distance = dist(1);
         end
     end
-        disp('-----')
-        actualdistance = str2num(strtok(FileName(TestSetIdx(i)).name,'.'));
-        fprintf('Actual Distance: %4.0f \n',actualdistance)
-        fprintf('Distance Approx: %4.1f \n',distance)
-        disp('-----')
-    keyboard
+    
+    x = centroidOrig(1);
+    y = centroidOrig(2);
+    
+    if plotOption
+       image(img)
+       hold on;
+       plot(x,y,'g+')
+       title(sprintf('Barrel distance %.lf m',distance));
+        
+    end
+    
 end
-
-
-
-%     %% Predict distance
-%     xtest = 100*ones(1,3);
-%     for l = 1:5
-%         p(l) = sqrt(det(A{l})/((2*pi)^3)) * exp(-1/2*(xtest - mu(l,:))*A{l}*(xtest - mu(l,:))');
-%         q(l) = mvnpdf(xtest,mu(l,:),inv(A{l}))
-%     end
-%
