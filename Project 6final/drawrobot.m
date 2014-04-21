@@ -12,7 +12,10 @@ th = state(3);
 
 %% raw coodinates of the robot in C configuration
 IJbody = flipud([0 10;20 10;20 30;-20 30;-20 -30;20 -30;20 -10;0 -10]'); %[i;j]
-IJbody(2,:) = IJbody(2,:) -20;
+beadRad = 15;
+%d = sqrt(beadRad^2 - 10^2) + 20;
+% d = 10;
+% IJbody(2,:) = IJbody(2,:);
 
 IJworld = [cos(th) sin(th);-sin(th) cos(th)] * IJbody;
 IJworld = bsxfun(@plus,IJworld,IJtrans);
