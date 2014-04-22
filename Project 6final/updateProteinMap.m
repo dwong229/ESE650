@@ -29,10 +29,10 @@ Sigma = eye(2)*5;
 
     if stuck
     % add probability scale factor:
-        pscale = 1e6;
+        pscale = 20;
         map(idx) = map(idx) + F(:)*pscale;
     else
-        pscale = -1e6;
+        pscale = -10;
         map(idx) = map(idx) + F(:)*pscale;
     end
 end

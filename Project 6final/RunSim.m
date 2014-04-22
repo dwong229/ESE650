@@ -10,7 +10,7 @@ clear all
 close all
 
 plotproteinmap = true;
-makemovie = false;
+makemovie = true;
 % initialize workspace:
 imax = 480;
 jmax = 640;
@@ -55,7 +55,7 @@ axis image
 
 %% Generate bead location
 beadradii = 15;
-nbead = 5;
+nbead = 10;
 bead = generateBead(nbead,beadradii,[imax,jmax]);
 hbeads = subplot(2,2,3);
 axis ij
@@ -233,6 +233,7 @@ switch mode
                     set(hbelief,'CData',map.belief);
                 else
                     map.belief = updateProteinMap(bead.center(beadIdx,:),map.belief,[imax,jmax],bead.stuck(beadIdx));
+                    set(hbelief,'CData',map.belief);
                 end
                 
                 drawnow
@@ -251,6 +252,11 @@ switch mode
         if makemovie
             close(movieObj)
         end
+        
+    case 2
+        disp('Greedy Exploration')
+        
+        
         
     otherwise
         disp('Mode value invalid')
